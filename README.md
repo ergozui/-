@@ -1,6 +1,51 @@
 # 区块链存证溯源系统
 本系统用来将文件系统中存储的重要文件的哈希值上链存储，系统用户均可以使用该系统用文件名索引查询到文件的哈希值，再将该哈希值与本地的哈希结果进行比对，从而确定文件的真伪。
 
+测试用的sol代码如下，需要提前在测试链上跑起来，笔者用的geth开发的也可以考虑用现成的测试链比如Ganache。
+``` 
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity ^0.4.23;
+pragma experimental ABIEncoderV2;
+contract Evidence {
+    struct FileEvidence {
+        string fileHash;
+        string author;
+        string time;
+        string fileName;
+    }
+
+    uint private CODE_SUCCESS = 0;
+    mapping(string => FileEvidence) private filemap;
+    string[] private fileList;
+    event UpdateInfo(string fileHash, string author, string fileName, string time);
+    event DeleteInfo(string fileName);
+
+    function saveEvidence(string memory fileName, string memory author, string memory fileHash, string memory time) public returns (uint code) {
+        FileEvidence storage fileEvidence = filemap[fileName];
+        fileEvidence.fileHash = fileHash;
+        fileEvidence.author = author;
+        fileEvidence.time = time;
+        fileEvidence.fileName = fileName;
+        fileList.push(fileName);
+        emit UpdateInfo(fileHash, author, fileName, time);
+        return CODE_SUCCESS;
+    }
+
+    function getEvidence(string memory fileName) public view returns (string memory) {
+        FileEvidence storage fileEvidence = filemap[fileName];
+        return fileEvidence.fileHash;
+    }
+
+    function deleteEvidence(string memory fileName) public  returns (uint code) {
+        require(bytes(fileName).length > 0, "File name cannot be empty");
+
+        delete filemap[fileName];
+
+        emit DeleteInfo(fileName);
+        return CODE_SUCCESS;
+    }
+}
+``` 
 ##以太坊终端操作
 1. 启动geth控制台
 ``` 
